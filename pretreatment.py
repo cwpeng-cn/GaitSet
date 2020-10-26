@@ -132,7 +132,8 @@ def cut_pickle(seq_info, pid):
         if img is not None:
             # Save the cut img
             save_path = os.path.join(out_dir, _frame_name)
-            scisc.imsave(save_path, img)
+            cv2.imwrite(save_path, img)
+            # scisc.imsave(save_path, img)
             count_frame += 1
     # Warn if the sequence contains less than 5 frames
     if count_frame < 5:

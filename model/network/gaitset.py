@@ -46,12 +46,14 @@ class SetNet(nn.Module):
 
     def frame_max(self, x):
         if self.batch_frame is None:
+            # seq_num, frame_num, c, h, w
+            # seq_num, 1 , c, h, w
             return torch.max(x, 1)
         else:
             _tmp = [
                 torch.max(x[:, self.batch_frame[i]:self.batch_frame[i + 1], :, :, :], 1)
                 for i in range(len(self.batch_frame) - 1)
-                ]
+            ]
             max_list = torch.cat([_tmp[i][0] for i in range(len(_tmp))], 0)
             arg_max_list = torch.cat([_tmp[i][1] for i in range(len(_tmp))], 0)
             return max_list, arg_max_list
@@ -63,13 +65,14 @@ class SetNet(nn.Module):
             _tmp = [
                 torch.median(x[:, self.batch_frame[i]:self.batch_frame[i + 1], :, :, :], 1)
                 for i in range(len(self.batch_frame) - 1)
-                ]
+            ]
             median_list = torch.cat([_tmp[i][0] for i in range(len(_tmp))], 0)
             arg_median_list = torch.cat([_tmp[i][1] for i in range(len(_tmp))], 0)
             return median_list, arg_median_list
 
     def forward(self, silho, batch_frame=None):
         # n: batch_size, s: frame_num, k: keypoints_num, c: channel
+        # seq_num, frame_num, h, w
         if batch_frame is not None:
             batch_frame = batch_frame[0].data.cpu().numpy().tolist()
             _ = len(batch_frame)
@@ -84,6 +87,7 @@ class SetNet(nn.Module):
                 silho = silho[:, :frame_sum, :, :]
             self.batch_frame = [0] + np.cumsum(batch_frame).tolist()
         n = silho.size(0)
+        # seq_num, frame_num, 1, h, w
         x = silho.unsqueeze(2)
         del silho
 
@@ -107,14 +111,26 @@ class SetNet(nn.Module):
         n, c, h, w = gl.size()
         for num_bin in self.bin_num:
             z = x.view(n, c, num_bin, -1)
+            # n,c,num_bin
             z = z.mean(3) + z.max(3)[0]
             feature.append(z)
+            # n,c,num_bin
             z = gl.view(n, c, num_bin, -1)
             z = z.mean(3) + z.max(3)[0]
             feature.append(z)
+        # 2*len(num_bin),(n,c,num_bin)
+        # n, c, sum(self.bin_num) * 2
+
+        # sum(self.bin_num) * 2, n, c
         feature = torch.cat(feature, 2).permute(2, 0, 1).contiguous()
 
+        # fc_bin
+        # sum(self.bin_num) * 2, 128, hidden_dim)
+
         feature = feature.matmul(self.fc_bin[0])
+
+        #  sum(self.bin_num) * 2,n,hidden_dim
+        #  n,sum(self.bin_num) * 2,hidden_dim
         feature = feature.permute(1, 0, 2).contiguous()
 
         return feature, None

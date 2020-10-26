@@ -76,7 +76,9 @@ class Model:
     def collate_fn(self, batch):
         batch_size = len(batch)
         feature_num = len(batch[0][0])
+        # seq_num, frame_num, h ,w
         seqs = [batch[i][0] for i in range(batch_size)]
+        # seq_num , frame_num
         frame_sets = [batch[i][1] for i in range(batch_size)]
         view = [batch[i][2] for i in range(batch_size)]
         seq_type = [batch[i][3] for i in range(batch_size)]
@@ -93,36 +95,42 @@ class Model:
                 _ = [feature.values for feature in sample]
             return _
 
+        # seq_num, 1, frame_num, h , w
         seqs = list(map(select_frame, range(len(seqs))))
 
         if self.sample_type == 'random':
+            # [1, seq_num, frame_num, h ,w]
             seqs = [np.asarray([seqs[i][j] for i in range(batch_size)]) for j in range(feature_num)]
         else:
             gpu_num = min(torch.cuda.device_count(), batch_size)
             batch_per_gpu = math.ceil(batch_size / gpu_num)
+            # gpu_num, per_gpu_seq
             batch_frames = [[
-                                len(frame_sets[i])
-                                for i in range(batch_per_gpu * _, batch_per_gpu * (_ + 1))
-                                if i < batch_size
-                                ] for _ in range(gpu_num)]
+                len(frame_sets[i])
+                for i in range(batch_per_gpu * _, batch_per_gpu * (_ + 1))
+                if i < batch_size
+            ] for _ in range(gpu_num)]
             if len(batch_frames[-1]) != batch_per_gpu:
                 for _ in range(batch_per_gpu - len(batch_frames[-1])):
                     batch_frames[-1].append(0)
             max_sum_frame = np.max([np.sum(batch_frames[_]) for _ in range(gpu_num)])
+            # seq_num, feature_num, frame_num, h , w
+            # feature_num, gpu_num, per_gpu_seq*frame_num,h, w
             seqs = [[
-                        np.concatenate([
-                                           seqs[i][j]
-                                           for i in range(batch_per_gpu * _, batch_per_gpu * (_ + 1))
-                                           if i < batch_size
-                                           ], 0) for _ in range(gpu_num)]
-                    for j in range(feature_num)]
+                np.concatenate([seqs[i][j]
+                                for i in range(batch_per_gpu * _, batch_per_gpu * (_ + 1))
+                                if i < batch_size], 0) for _ in range(gpu_num)]
+                for j in range(feature_num)
+            ]
+
+            # feature_num, gpu_num, max_sum_frame, h, w
             seqs = [np.asarray([
-                                   np.pad(seqs[j][_],
-                                          ((0, max_sum_frame - seqs[j][_].shape[0]), (0, 0), (0, 0)),
-                                          'constant',
-                                          constant_values=0)
-                                   for _ in range(gpu_num)])
-                    for j in range(feature_num)]
+                np.pad(seqs[j][_],
+                       ((0, max_sum_frame - seqs[j][_].shape[0]), (0, 0), (0, 0)),
+                       'constant',
+                       constant_values=0)
+                for _ in range(gpu_num)])
+                for j in range(feature_num)]
             batch[4] = np.asarray(batch_frames)
 
         batch[0] = seqs
@@ -148,6 +156,12 @@ class Model:
 
         _time1 = datetime.now()
         for seq, view, seq_type, label, batch_frame in train_loader:
+            # [1, 128，30，64，44]
+            # 128
+            # 128
+            # 128
+            # None
+            # print("seq", len(seq), seq)
             self.restore_iter += 1
             self.optimizer.zero_grad()
 
