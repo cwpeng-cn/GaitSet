@@ -5,6 +5,7 @@ import os
 import pickle
 import cv2
 import xarray as xr
+from tqdm import tqdm
 
 
 class DataSet(tordata.Dataset):
@@ -41,11 +42,8 @@ class DataSet(tordata.Dataset):
             self.index_dict.loc[_label, _seq_type, _view] = i
 
     def load_all_data(self):
-        print('all data size:', self.data_size)
-        for i in range(self.data_size):
+        for i in tqdm(range(self.data_size)):
             self.load_data(i)
-            if i % 10 == 0:
-                print("{} person has processed".format(i))
 
     def load_data(self, index):
         return self.__getitem__(index)
