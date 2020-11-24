@@ -5,6 +5,7 @@ conf = {
         'dataset_path': "../datasets/CASIAB_CROP",
         'resolution': '64',
         'dataset': 'CASIA-B',
+
         # In CASIA-B, data of subject #5 is incomplete.
         # Thus, we ignore it in training.
         # For more detail, please refer to
