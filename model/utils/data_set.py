@@ -15,7 +15,7 @@ class DataSet(tordata.Dataset):
         self.label = label
         self.cache = cache
         self.resolution = int(resolution)
-        self.cut_padding = int(float(resolution)/64*10)
+        self.cut_padding = int(float(resolution) / 64 * 10)
         self.data_size = len(self.label)
         self.data = [None] * self.data_size
         self.frame_set = [None] * self.data_size
@@ -41,8 +41,11 @@ class DataSet(tordata.Dataset):
             self.index_dict.loc[_label, _seq_type, _view] = i
 
     def load_all_data(self):
+        print('all data size:', self.data_size)
         for i in range(self.data_size):
             self.load_data(i)
+            if i % 10 == 0:
+                print("{} person has processed".format(i))
 
     def load_data(self, index):
         return self.__getitem__(index)
