@@ -2,7 +2,7 @@ conf = {
     "WORK_PATH": "./work",
     "CUDA_VISIBLE_DEVICES": "0,1,2,3",
     "data": {
-        'dataset_path': "../datasets/CASIAB_CROP",
+        'dataset_path': "../../../datasets/CASIAB_CROP",
         'resolution': '64',
         'dataset': 'CASIA-B',
 
